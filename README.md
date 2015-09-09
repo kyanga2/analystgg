@@ -1,8 +1,8 @@
-*****analystgg
+#####analyst.gg
 Pocket analyst project based on Riot Gaming's match API
 
 
-***Project Timeline:
+###Project Timeline:
 created 9/9/2015 at 9:22AM
 
 Current Objective:
