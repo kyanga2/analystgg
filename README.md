@@ -6,5 +6,5 @@ Project Timeline:
 created 9/9/2015 at 9:22AM
 
 Current Objective:
-Figure out Python API handling
+Figure out Python API handling\n
 Build Python match timeline suite
