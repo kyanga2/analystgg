@@ -1,7 +1,9 @@
 '''
 Created on Sep 13, 2015
 
-@author: Caracal
+API caller class for handling API calls to RIOT
+
+@author: Kevin Yang
 '''
 
 import json
