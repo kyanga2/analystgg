@@ -7,7 +7,7 @@ varius statistics about the 10 players within the match
 @author: Kevin Yang
 '''
 
-from apiCaller import api_Caller
+from apiCaller import API_caller
 
 '''
 Each match json contains the following fields we care about:
@@ -50,20 +50,34 @@ BUILDING_KILL:
         killerID
         laneType - BOT, MID, TOP
         towerType - OUTER, INNER, BASE, NEXUS, UNDEFINED (azir)
-        
-
-
-
 '''
+
+def pullStats(match): 
+    stats_out = [{'id' = x} for x in xrange(1,11)]
+
+
+    #iterate through all frames within the timeline, one minute at a time.
+    #no important data in first frame
+    for i in xrange(1,len(match['timeline']['frames'])):
+
+        #iterate through events for minute ending in i
+
+        for event in match['timeline']['frames'][i]['events']:
+            #list of event
+            pass
+
+
+
+
+
 
 
 
 
 
 if __name__ == '__main__':
-    apic = api_caller()
+    apic = API_caller()
     summ_list = apic.get_summoner_ids('na', 'vaior swift, female champs only, lumiere ombre')
     match_list = apic.get_match_list('na', summ_list['femalechampsonly'], '')
     match_id = match_list.keys()[0]
     match = apic.get_match('na', match_id, True)
-    print match
