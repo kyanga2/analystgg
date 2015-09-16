@@ -53,8 +53,10 @@ BUILDING_KILL:
 '''
 
 def pullStats(match): 
-    stats_out = [{'id' = x} for x in xrange(1,11)]
+    stats_out = [{'id':x} for x in xrange(1,11)]
 
+    #initialize counter variables for calculating stats
+    cs_min_counter = [0,0,0,0,0,0,0,0,0,0]
 
     #iterate through all frames within the timeline, one minute at a time.
     #no important data in first frame
@@ -64,8 +66,18 @@ def pullStats(match):
 
         for event in match['timeline']['frames'][i]['events']:
             #list of event
+
             pass
 
+        for pId, pFrame in match['timeline']['frames'][i]['participantFrames'].iteritems():
+            pNum = int(pId)-1 #for internal indexing
+            ftmz = '' #first ten minute zero (for nice formattting)
+            cs_at = pFrame['minionsKilled']
+            if i<10: ftmz = '0'
+            stats_out[pNum]['csmin'+ftmz+str(i)] =cs_at - cs_min_counter[pNum]
+            cs_min_counter[pNum] = cs_at            
+
+    return stats_out
 
 
 
