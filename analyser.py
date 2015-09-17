@@ -8,6 +8,7 @@ varius statistics about the 10 players within the match
 '''
 
 from apiCaller import API_caller
+import time
 
 '''
 Each match json contains the following fields we care about:
@@ -44,12 +45,30 @@ Champ kill:
         killerId
         position (x,y on the map)
 
+ELITE_MONSTER_KILL:
+        monsterType:  Baron, dragon
+        killerId
+
 BUILDING_KILL:
         assistingParticipantIds
         buildingType - tower, inhib
         killerID
         laneType - BOT, MID, TOP
         towerType - OUTER, INNER, BASE, NEXUS, UNDEFINED (azir)
+
+
+EVENT PRIORITY:
+    ITEM_PURCHASED
+    ITEM_DESTROYED - matches with WARD_PLACED
+    SKILL_LEVEL_UP
+    WARD_PLACED*
+    CHAMPION_KILL*
+    WARD_KILL*
+    BUILDING_KILL*
+    ITEM_SOLD
+    ITEM_UNDO
+    ELITE_MONSTER_KILL*
+
 '''
 
 def pullStats(match): 
@@ -57,6 +76,13 @@ def pullStats(match):
 
     #initialize counter variables for calculating stats
     cs_min_counter = [0,0,0,0,0,0,0,0,0,0]
+    r_t1_tower_kills = 0
+    r_t2_tower_kills = 0
+    r_i_tower_kills = 0
+    b_t1_tower_kills = 0
+    ward_time = [[0,0,0]]
+
+
 
     #iterate through all frames within the timeline, one minute at a time.
     #no important data in first frame
@@ -81,7 +107,18 @@ def pullStats(match):
 
 
 
+def survey_stats(match, event_types):
+    #survey frequency of events
+    for i in xrange(1,len(match['timeline']['frames'])):
+        #iterate through events for minute ending in i
 
+        for event in match['timeline']['frames'][i]['events']:
+            etype = event['eventType']
+            if etype in event_types:
+                event_types[etype] += 1
+            else:
+                event_types[etype] = 1  
+     
 
 
 
@@ -91,5 +128,16 @@ if __name__ == '__main__':
     apic = API_caller()
     summ_list = apic.get_summoner_ids('na', 'vaior swift, female champs only, lumiere ombre')
     match_list = apic.get_match_list('na', summ_list['femalechampsonly'], '')
-    match_id = match_list.keys()[0]
-    match = apic.get_match('na', match_id, True)
+    counter = 0
+    event_types = {}
+    time.sleep(5)
+    for i in xrange(273):
+        survey_stats(apic.get_match('na',match_list.keys()[i], True), event_types)
+        counter += 1
+        time.sleep(1)
+        if counter == 9:
+            counter = 0
+            time.sleep(3)
+            print 'sleepin', i
+
+
