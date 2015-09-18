@@ -75,12 +75,37 @@ def pullStats(match):
     stats_out = [{'id':x} for x in xrange(1,11)]
 
     #initialize counter variables for calculating stats
-    cs_min_counter = [0,0,0,0,0,0,0,0,0,0]
-    r_t1_tower_kills = 0
-    r_t2_tower_kills = 0
-    r_i_tower_kills = 0
-    b_t1_tower_kills = 0
-    ward_time = [[0,0,0]]
+    '''
+    Cs/min by phase of game
+        laning phase (0-1st tower)
+        early-mid game (until a team loses 3 towers)
+        mid game (until a team loses 6 towers)
+        late game (6 or more towers downed on a team)
+
+    solo kills in lane
+    solo kills in game
+    laning phase solo deaths
+    laning phase deaths to jungler
+    sight ward-minutes
+    vision wards-placed
+    wards killed
+    lane advantage flag
+
+
+    '''
+    game_phase = 0
+    cs_min_counter = [0]*10
+    r_tower_kills = 0
+    b_tower_kills = 0
+    solo_kills_lane = [0]*10
+    solo_kills_game = [0]*10
+    solo_deaths_lane = [0]*10
+    gank_deaths_lane = [0]*10
+    deaths_picked_off = [0]*10  #killed but no friendly dies in 5 seconds, enemy in 20 seconds
+    ward_minutes = [0]*10
+    lane advantage = [0]*10
+
+
 
 
 
@@ -111,14 +136,15 @@ def survey_stats(match, event_types):
     #survey frequency of events
     for i in xrange(1,len(match['timeline']['frames'])):
         #iterate through events for minute ending in i
-
-        for event in match['timeline']['frames'][i]['events']:
-            etype = event['eventType']
-            if etype in event_types:
-                event_types[etype] += 1
-            else:
-                event_types[etype] = 1  
-     
+        try:
+            for event in match['timeline']['frames'][i]['events']:
+                etype = event['eventType']
+                if etype in event_types:
+                    event_types[etype] += 1
+                else:
+                    event_types[etype] = 1
+        except KeyError:
+            print KeyError, "frame", i, "from match", match['matchId']
 
 
 
@@ -127,17 +153,22 @@ def survey_stats(match, event_types):
 if __name__ == '__main__':
     apic = API_caller()
     summ_list = apic.get_summoner_ids('na', 'vaior swift, female champs only, lumiere ombre')
-    match_list = apic.get_match_list('na', summ_list['femalechampsonly'], '')
+    match_list = apic.get_match_list('na', summ_list['vaiorswift'], '')
     counter = 0
     event_types = {}
     time.sleep(5)
-    for i in xrange(273):
-        survey_stats(apic.get_match('na',match_list.keys()[i], True), event_types)
-        counter += 1
-        time.sleep(1)
-        if counter == 9:
-            counter = 0
-            time.sleep(3)
-            print 'sleepin', i
-
-
+    for i in xrange(335, len(match_list)):
+        try:
+            match = apic.get_match('na',match_list.keys()[i], True) #catches 404s
+            if match:
+                survey_stats(apic.get_match('na',match_list.keys()[i], True), event_types)
+                counter += 1
+                print i
+                time.sleep(1)
+            else:
+                print "Failed to retrieve match 404, match ID:", match_list.keys()[i]
+            if counter == 10:
+                counter = 0
+                time.sleep(6)
+        except KeyError:
+            print KeyError, "match", match_list.keys()[i]
