@@ -71,6 +71,23 @@ EVENT PRIORITY:
 
 '''
 
+_role_dict = {'TOPSOLO' : 'TOP',
+                'MIDSOLO' : 'MID',
+                'MIDDLESOLO': 'MID',
+                'NONEJUNGLE': 'JUNGLE',
+                'JUNGLENONE': 'JUNGLE',
+                'BOTTOMNONE': 'JUNGLE',
+                'BOTTOMDUO_SUPPORT': 'SUPPORT',
+                'BOTTOMDUO': 'SUPPORT',
+                'MIDDUO_SUPPORT': 'SUPPORT',
+                'TOPDUO_SUPPORT': 'SUPPORT',
+                'BOTTOMDUO_CARRY': 'ADC',
+                'MIDDUO_CARRY': 'ADC',
+                'TOPDUO_CARRY': 'ADC',
+                'BOTTOMSOLO': 'TROLL',
+                'MIDDUO': 'TROLL',
+                'TOPDUO': 'TROLL'}
+
 def pullStats(match): 
     stats_out = [{'id':x} for x in xrange(1,11)]
 
@@ -103,9 +120,17 @@ def pullStats(match):
     gank_deaths_lane = [0]*10
     deaths_picked_off = [0]*10  #killed but no friendly dies in 5 seconds, enemy in 20 seconds
     ward_minutes = [0]*10
-    lane advantage = [0]*10
+    lane_advantage = [0]*10
+    jg_invade_red = False
+    jg_invade_blue = False
+    invade_coefficient = [0]*10
 
+    '''
+    Initialize all 10 participant roles
+    '''
 
+    for i in xrange(0,10):
+        stats_out[i]['role'] = _role_dict[match['participants'][i]['timeline']['lane']+match['participants'][i]['timeline']['role']]
 
 
 
@@ -157,7 +182,7 @@ if __name__ == '__main__':
     counter = 0
     event_types = {}
     time.sleep(5)
-    for i in xrange(335, len(match_list)):
+    for i in xrange(335, 336):
         try:
             match = apic.get_match('na',match_list.keys()[i], True) #catches 404s
             if match:
