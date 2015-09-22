@@ -125,6 +125,8 @@ def pull_stats(match):
     jg_invade_blue = False
     invade_offense = [0]*10
     invade_defense = [0]*10
+    invade_deaths = [0]*10
+    invade_kills = [0]*10
 
     '''
     Initialize all 10 participant roles
@@ -146,58 +148,54 @@ def pull_stats(match):
     inbetween = river
 
     '''
-    try:
-        for i in xrange(2):
-
-            for event in match['timeline']['frames'][i]['events']:
-                if event['eventType'] == 'CHAMPION_KILL':
-                    v_id = event['victimId']-1
-
-                    x_coord = event['position']['x']
-                    y_coord - event['position']['y']
-                    if x_coord + y_coord  < 14500:
-                        #blue side invaded
-                        if v_id <= 5:
-                            invade_defense[v_id] -= 1
-                            invade_offense[event['killerId']-1] += 1
-                            try:
-                                for champ in event['assistingParticipantIds']:
-                                    invade_offense[champ] += 1
-                            except KeyError:
-                                pass
-                        else:
-                            invade_offense[v_id] -= 1
-                            invade_defense[event['killerId']-1] += 1
-                            try:
-                                for champ in event['assistingParticipantIds']:
-                                    invade_defense[champ] += 1
-                            except KeyError:
-                                pass
+    print 'trying'
+    for i in xrange(1,3):
+        print i
+        for event in match['timeline']['frames'][i]['events']:
+            print event['eventType']
+            if event['eventType'] == u'CHAMPION_KILL':
+                v_id = event['victimId']-1
+                invade_deaths[v_id] += 1
+                invade_kills[event['killerId']-1] += 1
+                x_coord = event['position']['x']
+                y_coord = event['position']['y']
+                print "kill found", v_id+1, x_coord, y_coord
+                if x_coord + y_coord  < 14500:
+                    #blue side invaded
+                    if v_id <= 4:
+                        invade_defense[v_id] -= 1
+                        invade_offense[event['killerId']-1] += 1
+                        if 'assistingParticipantIds' in event:
+                            for champ in event['assistingParticipantIds']:
+                                print champ, v_id +1
+                                invade_offense[champ] += 1
                     else:
-                        #red side invaded, river brawls credited to red side
-                        if v_id <= 5:
-                            invade_offense[v_id] -= 1
-                            invade_defense[event['killerId']-1] += 1
-                            try:
-                                for champ in event['assistingParticipantIds']:
-                                    invade_defense[champ] += 1
-                            except KeyError:
-                                pass
-                        else:
-                            invade_defense[v_id] -= 1
-                            invade_offense[event['killerId']-1] += 1
-                            try:
-                                for champ in event['assistingParticipantIds']:
-                                    invade_offense[champ] += 1
-                            except KeyError:
-                                pass
-    except:
-        pass
+                        invade_offense[v_id] -= 1
+                        invade_defense[event['killerId']-1] += 1
+                        if 'assistingParticipantIds' in event:
+                            for champ in event['assistingParticipantIds']:
+                                print champ, v_id +1
+                                invade_defense[champ] += 1
 
-
-
-
-
+                else:
+                    print "red side kill"
+                    #red side invaded, river brawls credited to red side
+                    if v_id <= 4:
+                        invade_offense[v_id] -= 1
+                        invade_defense[event['killerId']-1] += 1
+                        if 'assistingParticipantIds' in event:
+                            for champ in event['assistingParticipantIds']:
+                                print champ, v_id +1
+                                invade_defense[champ] += 1
+                    else:
+                        invade_defense[v_id] -= 1
+                        invade_offense[event['killerId']-1] += 1
+                        if 'assistingParticipantIds' in event:
+                            for champ in event['assistingParticipantIds']:
+                                print champ, v_id +1
+                                invade_offense[champ] += 1
+                    print invade_defense
+                    print invade_offense
 
 
     for i in xrange(3,len(match['timeline']['frames'])):
@@ -212,15 +210,18 @@ def pull_stats(match):
         for pId, pFrame in match['timeline']['frames'][i]['participantFrames'].iteritems():
             pNum = int(pId)-1 #for internal indexing
             ftmz = '' #first ten minute zero (for nice formattting)
-            cs_at = pFrame['minionsKilled']
+            cs_at = pFrame['minionsKilled']+pFrame['jungleMinionsKilled']
             if i<10: ftmz = '0'
             stats_out[pNum]['csmin'+ftmz+str(i)] =cs_at - cs_min_counter[pNum]
             cs_min_counter[pNum] = cs_at            
 
 
-    stats_out[i]['invade_offense'] = invade_offense[i]
-    stats_out[i]['invade_defense'] = invade_defense[i]
 
+    for i in xrange(10):
+        stats_out[i]['invade_offense'] = invade_offense[i]
+        stats_out[i]['invade_defense'] = invade_defense[i]
+        stats_out[i]['invade_kills'] = invade_kills[i]
+        stats_out[i]['invade_deaths'] = invade_deaths[i]
 
 
     return stats_out
@@ -247,25 +248,21 @@ def run_time(matches):
         pull_stats(matches[i])
 
 
-if __name__ == '__main__':
+def start_kernel():
     apic = API_caller()
     summ_list = apic.get_summoner_ids('na', 'vaior swift, female champs only, lumiere ombre')
     match_list = apic.get_match_list('na', summ_list['vaiorswift'], '')
     counter = 0
     event_types = {}
     time.sleep(11)
-    match = [None]*10
+    match = []
+    match_list_sorted = sorted(match_list.keys(), reverse=True)
     for i in xrange(10):
         try:
-            match[i] = apic.get_match('na',match_list.keys()[i], True) #catches 404s
-            if match[i]:
-                survey_stats(match[i], event_types)
-                counter += 1
-                print i
-            else:
-                print "Failed to retrieve match 404, match ID:", match_list.keys()[i]
+            match.append(apic.get_match('na',match_list_sorted[i], True)) #catches 404s
+            counter +=1
             if counter == 10:
                 counter = 0
-                time.sleep(6)
+                time.sleep(12)
         except KeyError:
             print KeyError, "match", match_list.keys()[i]
