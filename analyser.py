@@ -124,8 +124,9 @@ def pull_stats(match):
     gank_deaths_lane = [0]*10
     deaths_picked_off = [0]*10  #killed but no friendly dies in 5 seconds, enemy in 20 seconds
     ward_minutes = [0]*10
-    lane_advantage = [0]*10
-    
+    lane_advantage_200 = [False]*10
+    lane_advantage_400 = [False]*10
+    lane_advantage_1000 = [False]*10
     jg_invade= [0]*10
 
     invade_offense = [0]*10
@@ -137,10 +138,32 @@ def pull_stats(match):
     Initialize all 10 participant roles
     '''
 
+
+    top_count = 0
+    mid_count = 0
+    jg_count = 0
+    adc_count = 0
+    sup_count = 0
+
     for i in xrange(0,10):
-        stats_out[i]['role'] = _role_dict[match['participants'][i]['timeline']['lane']+match['participants'][i]['timeline']['role']]
-
-
+        role_var = _role_dict[match['participants'][i]['timeline']['lane']+match['participants'][i]['timeline']['role']]
+        stats_out[i]['role'] = role_var
+        if role_var == 'TOP':
+            top_count +=1
+        elif role_var == 'JUNGLE':
+            jg_count +=1
+        elif role_var == 'MID':
+            mid_count +=1
+        elif role_var == 'ADC':
+            adc_count +=1
+        elif role_var == 'SUPPORT':
+            sup_count +=1
+    
+    meta = (top_count + jg_count + mid_count + adc_count + sup_count == 10)
+    if meta:
+        stats_out.append(True)
+    else:
+        stats_out.append(False)
 
     #iterate through all frames within the timeline, one minute at a time.
     #no dynamic data in 0 frame, occasionally no events occur during 2 frame
@@ -197,20 +220,22 @@ def pull_stats(match):
 
     for i in xrange(3,len(match['timeline']['frames'])):
 
-        #iterate through events for minute ending in i
-
-        for event in match['timeline']['frames'][i]['events']:
-            #list of event
-
-            pass
-
         for pId, pFrame in match['timeline']['frames'][i]['participantFrames'].iteritems():
             pNum = int(pId)-1 #for internal indexing
             ftmz = '' #first ten minute zero (for nice formattting)
             cs_at = pFrame['minionsKilled']+pFrame['jungleMinionsKilled']
             if i<10: ftmz = '0'
             stats_out[pNum]['csmin'+ftmz+str(i)] =cs_at - cs_min_counter[pNum]
-            cs_min_counter[pNum] = cs_at            
+            cs_min_counter[pNum] = cs_at
+
+    for i in xrange(3,len(match['timeline']['frames'])):
+
+        #iterate through events for minute ending in i
+        if 'events' in match['timeline']['frames'][i]:
+            for event in match['timeline']['frames'][i]['events']:
+                #list of event
+
+                pass            
 
 
 
@@ -282,7 +307,7 @@ def start_kernel():
             counter += 1
             time.sleep(1)
         i+=1
-    sys.stdout.write('\rdone\n imported %d matches' % i+1)
+    sys.stdout.write('\rdone\n imported %d matches' % i)
     sys.stdout.flush()
 
 
@@ -290,4 +315,7 @@ def start_kernel():
 # for i in xrange(100):
 #     pull_stats(match[i])
 # elapsed = timeit.default_timer() - start_time
-# print elapsed
+# # print elapsed
+# for i in xrange(500):
+#     if not data[i][10]:
+#         print i, [item['role'] for item in data[i][:10]], match_list_sorted[i]
