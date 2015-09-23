@@ -87,7 +87,7 @@ _role_dict = {'TOPSOLO' : 'TOP',
                 'MIDDUO_CARRY': 'ADC',
                 'MIDDLEDUO_CARRY': 'ADC',
                 'TOPDUO_CARRY': 'ADC',
-                'BOTTOMSOLO': 'TROLL',
+                'BOTTOMSOLO': 'TROLL', #odd cases being dropped due to roaming support
                 'MIDDUO': 'TROLL',
                 'MIDDLEDUO': 'TROLL',
                 'TOPDUO': 'TROLL'}
