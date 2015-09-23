@@ -248,38 +248,41 @@ def run_time(matches):
 def start_kernel():
     '''
     odd case where API call succeeds but fails to return a timeline
+    patch: check for timeline, call api again if necessary
 
     '''
 
 
     print 'startin yo'
+    sys.stdout.flush()
     apic = API_caller()
     summ_list = apic.get_summoner_ids('na', 'vaior swift, female champs only, lumiere ombre')
     match_list = apic.get_match_list('na', summ_list['vaiorswift'], '')
     counter = 0
     event_types = {}
-    time.sleep(11)
+    time.sleep(10)
     match = []
     match_list_sorted = sorted(match_list.keys(), reverse=True)
     i = 0
-    while i < 100:
+    while i < 500:
         try:
             game_data = apic.get_match('na',match_list_sorted[i], True)
             if game_data['timeline']:
                 match.append(game_data)
                 time.sleep(.25)
-                sys.stdout.write("\r%d imported" % i)
+                sys.stdout.write("\r%d imported, latest %d" % (i+1, game_data['matchId']))
                 sys.stdout.flush()
                 counter +=1
-                if counter == 10:
+                if counter >= 10:
                     counter = 0
-                    time.sleep(12)
+                    time.sleep(8)
         except TypeError,KeyError:
-            print "shit done broke @ match", match_list_sorted(i)
+            print  "shit done broke @ match", match_list_sorted[i]
             i -= 1
+            counter += 1
             time.sleep(1)
         i+=1
-    sys.stdout.write('done')
+    sys.stdout.write('\rdone\n imported %d matches' % i+1)
     sys.stdout.flush()
 
 
