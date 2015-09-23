@@ -9,6 +9,7 @@ varius statistics about the 10 players within the match
 
 from apiCaller import API_caller
 import time
+import sys
 
 '''
 Each match json contains the following fields we care about:
@@ -80,12 +81,15 @@ _role_dict = {'TOPSOLO' : 'TOP',
                 'BOTTOMDUO_SUPPORT': 'SUPPORT',
                 'BOTTOMDUO': 'SUPPORT',
                 'MIDDUO_SUPPORT': 'SUPPORT',
+                'MIDDLEDUO_SUPPORT': 'SUPPORT',
                 'TOPDUO_SUPPORT': 'SUPPORT',
                 'BOTTOMDUO_CARRY': 'ADC',
                 'MIDDUO_CARRY': 'ADC',
+                'MIDDLEDUO_CARRY': 'ADC',
                 'TOPDUO_CARRY': 'ADC',
                 'BOTTOMSOLO': 'TROLL',
                 'MIDDUO': 'TROLL',
+                'MIDDLEDUO': 'TROLL',
                 'TOPDUO': 'TROLL'}
 
 def pull_stats(match): 
@@ -121,8 +125,9 @@ def pull_stats(match):
     deaths_picked_off = [0]*10  #killed but no friendly dies in 5 seconds, enemy in 20 seconds
     ward_minutes = [0]*10
     lane_advantage = [0]*10
-    jg_invade_red = False
-    jg_invade_blue = False
+    
+    jg_invade= [0]*10
+
     invade_offense = [0]*10
     invade_defense = [0]*10
     invade_deaths = [0]*10
@@ -148,54 +153,46 @@ def pull_stats(match):
     inbetween = river
 
     '''
-    print 'trying'
     for i in xrange(1,3):
-        print i
-        for event in match['timeline']['frames'][i]['events']:
-            print event['eventType']
-            if event['eventType'] == u'CHAMPION_KILL':
-                v_id = event['victimId']-1
-                invade_deaths[v_id] += 1
-                invade_kills[event['killerId']-1] += 1
-                x_coord = event['position']['x']
-                y_coord = event['position']['y']
-                print "kill found", v_id+1, x_coord, y_coord
-                if x_coord + y_coord  < 14500:
-                    #blue side invaded
-                    if v_id <= 4:
-                        invade_defense[v_id] -= 1
-                        invade_offense[event['killerId']-1] += 1
-                        if 'assistingParticipantIds' in event:
-                            for champ in event['assistingParticipantIds']:
-                                print champ, v_id +1
-                                invade_offense[champ] += 1
-                    else:
-                        invade_offense[v_id] -= 1
-                        invade_defense[event['killerId']-1] += 1
-                        if 'assistingParticipantIds' in event:
-                            for champ in event['assistingParticipantIds']:
-                                print champ, v_id +1
-                                invade_defense[champ] += 1
+        try:
+            for event in match['timeline']['frames'][i]['events']:
+                if event['eventType'] == u'CHAMPION_KILL':
+                    v_id = event['victimId']-1
+                    invade_deaths[v_id] += 1
+                    invade_kills[event['killerId']-1] += 1
+                    x_coord = event['position']['x']
+                    y_coord = event['position']['y']
+                    if x_coord + y_coord  < 14500:
+                        #blue side invaded
+                        if v_id <= 4:
+                            invade_defense[v_id] -= 1
+                            invade_offense[event['killerId']-1] += 1
+                            if 'assistingParticipantIds' in event:
+                                for champ in event['assistingParticipantIds']:
+                                    invade_offense[champ-1] += 1
+                        else:
+                            invade_offense[v_id] -= 1
+                            invade_defense[event['killerId']-1] += 1
+                            if 'assistingParticipantIds' in event:
+                                for champ in event['assistingParticipantIds']:
+                                    invade_defense[champ-1] += 1
 
-                else:
-                    print "red side kill"
-                    #red side invaded, river brawls credited to red side
-                    if v_id <= 4:
-                        invade_offense[v_id] -= 1
-                        invade_defense[event['killerId']-1] += 1
-                        if 'assistingParticipantIds' in event:
-                            for champ in event['assistingParticipantIds']:
-                                print champ, v_id +1
-                                invade_defense[champ] += 1
                     else:
-                        invade_defense[v_id] -= 1
-                        invade_offense[event['killerId']-1] += 1
-                        if 'assistingParticipantIds' in event:
-                            for champ in event['assistingParticipantIds']:
-                                print champ, v_id +1
-                                invade_offense[champ] += 1
-                    print invade_defense
-                    print invade_offense
+                        #red side invaded, river brawls credited to red side
+                        if v_id <= 4:
+                            invade_offense[v_id] -= 1
+                            invade_defense[event['killerId']-1] += 1
+                            if 'assistingParticipantIds' in event:
+                                for champ in event['assistingParticipantIds']:
+                                    invade_defense[champ-1] += 1
+                        else:
+                            invade_defense[v_id] -= 1
+                            invade_offense[event['killerId']-1] += 1
+                            if 'assistingParticipantIds' in event:
+                                for champ in event['assistingParticipantIds']:
+                                    invade_offense[champ-1] += 1
+        except KeyError:
+            print 'No data 1:00-2:00 in match', match['matchId']
 
 
     for i in xrange(3,len(match['timeline']['frames'])):
@@ -249,6 +246,13 @@ def run_time(matches):
 
 
 def start_kernel():
+    '''
+    odd case where API call succeeds but fails to return a timeline
+
+    '''
+
+
+    print 'startin yo'
     apic = API_caller()
     summ_list = apic.get_summoner_ids('na', 'vaior swift, female champs only, lumiere ombre')
     match_list = apic.get_match_list('na', summ_list['vaiorswift'], '')
@@ -257,12 +261,30 @@ def start_kernel():
     time.sleep(11)
     match = []
     match_list_sorted = sorted(match_list.keys(), reverse=True)
-    for i in xrange(10):
+    i = 0
+    while i < 100:
         try:
-            match.append(apic.get_match('na',match_list_sorted[i], True)) #catches 404s
-            counter +=1
-            if counter == 10:
-                counter = 0
-                time.sleep(12)
-        except KeyError:
-            print KeyError, "match", match_list.keys()[i]
+            game_data = apic.get_match('na',match_list_sorted[i], True)
+            if game_data['timeline']:
+                match.append(game_data)
+                time.sleep(.25)
+                sys.stdout.write("\r%d imported" % i)
+                sys.stdout.flush()
+                counter +=1
+                if counter == 10:
+                    counter = 0
+                    time.sleep(12)
+        except TypeError,KeyError:
+            print "shit done broke @ match", match_list_sorted(i)
+            i -= 1
+            time.sleep(1)
+        i+=1
+    sys.stdout.write('done')
+    sys.stdout.flush()
+
+
+# start_time = timeit.default_timer()
+# for i in xrange(100):
+#     pull_stats(match[i])
+# elapsed = timeit.default_timer() - start_time
+# print elapsed
