@@ -323,3 +323,7 @@ def start_kernel():
 # for i in xrange(500):
 #     if not data[i][10]:
 #         print i, [item['role'] for item in data[i][:10]], match_list_sorted[i]
+
+# with open('matches500.txt', 'r') as infile:
+#     stuff = infile.read()
+#     data1 = json.loads(stuff)
