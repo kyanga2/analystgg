@@ -10,6 +10,7 @@ varius statistics about the 10 players within the match
 from apiCaller import API_caller
 import time
 import sys
+import json
 
 '''
 Each match json contains the following fields we care about:
@@ -277,6 +278,9 @@ def start_kernel():
 
     '''
 
+    '''
+    Code in API Rate limiter
+    '''
 
     print 'startin yo'
     sys.stdout.flush()
@@ -288,11 +292,11 @@ def start_kernel():
     time.sleep(10)
     match = []
     match_list_sorted = sorted(match_list.keys(), reverse=True)
-    i = 0
-    while i < 500:
+    i = 500
+    while i < 1000:
         try:
             game_data = apic.get_match('na',match_list_sorted[i], True)
-            if game_data['timeline']:
+            if 'timeline' in game_data:
                 match.append(game_data)
                 time.sleep(.25)
                 sys.stdout.write("\r%d imported, latest %d" % (i+1, game_data['matchId']))
@@ -305,7 +309,7 @@ def start_kernel():
             print  "shit done broke @ match", match_list_sorted[i]
             i -= 1
             counter += 1
-            time.sleep(1)
+            time.sleep(2.5)
         i+=1
     sys.stdout.write('\rdone\n imported %d matches' % i)
     sys.stdout.flush()

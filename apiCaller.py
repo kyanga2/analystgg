@@ -55,7 +55,7 @@ class API_caller():
         try:
             summs = json.load(urllib2.urlopen(summ_url))
         except urllib2.URLError, e:
-            print 'Error code, failed to get match list', e
+            print 'Error code, failed to get summoner ids', e
             return
         summ_ids = {}
 
@@ -82,7 +82,7 @@ class API_caller():
         try:
             matches = json.load(urllib2.urlopen(match_list_url))
         except urllib2.URLError, e:
-            print 'Error code, failed to get match', e
+            print 'Error code, failed to get match list', e
             return
         for match in matches['matches']:
             if match['lane']+match['role'] in self._role_dict:
@@ -111,7 +111,7 @@ class API_caller():
         try:
             match_data = json.load(urllib2.urlopen(match_url))
         except urllib2.URLError, e:
-            print 'Error code, failed to get match list', e
+            print 'Error code, failed to get match', e
             return
 
         return match_data
