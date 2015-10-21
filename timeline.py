@@ -131,13 +131,19 @@ class states_cont(object):
     Constructed using a series of discrete snapshots, containing both discrete and
     continuous fields.
 
-    Intended usage: return the state variables describing an actor at any time within the
+    Intended usage: return the state of the system at any time within the
     time spanned by the dataset
     '''
 
-    def __init__(self, series_id, n_actors, fields, field_cont):
+    def __init__(self, series_id, fields=None, field_cont=None):
+        '''
+        Initializes a new states object, tied to a series_id.
+        fields is a list of features we wish to maintain for each actor's states
+        field_cont_type is a list of booleans indicating whether each field is continuous or discrete
+             True: continuous, False: discrete
+        '''
+
         self._series_id = series_id
-        self._n_actors = n_actors
         self._fields = fields
         self._field_cont = field_cont
 
@@ -146,45 +152,55 @@ class states_cont(object):
 
     #consider testing df vs 2-list performance
 
-    def add_state(self, timestamp, data_dict):
+    
+    def load_df(self, df, df_timestamp_col=0):
+        '''
+        loads in time series data from a Pandas dataframe format
+        '''
+
+        for row in df:
+            pass
+
+    def add_state_seq(self, timestamp, data_dict):
         '''
         Timestamps on participant_frames are at the minute
         Timestamps on events are in milliseconds
-        Since no events occur within the first 200ms, we assume all timestamps
-        less than 200 are from frames and automatically convert to ms.
+        Used to build the states using sequential snapshots in time order
         '''
-        if timestamp < 200: 
-            timestamp *= 60000
         self._timestamps.append(timestamp)
-        self._data.append(dict([data_dict[item] for item in self._fields]))
-
-    def level_up(self, timestamp):
-        '''
-        Adds another data point at the exact time of level-up
-        Extrapolates all values except level and xp (linear scaling by timestamp)
-        increments level by 1, sets xp to xp threshold
-        '''
-        new_point = clone(self._data[-1])
-        #extrapolate values
-
-        for k,v in new_point:
-            new_point[k] = int(v)*timestamp/self._timestamps[-1]
-        
-        #set lvl, xp
-        new_point['level'] += 1
-        new_point['xp'] = _level_thresholds[new_point['level']]
-
-        self._timestamps.append(timestamp)
-        self._data.append(new_point)
+        self._data.append(dict(zip(self._fields, [data_dict[item] for item in self._fields])))
 
     def pull_state(self, timestamp):
         '''
-        Returns the most recent state prior to the timestamp parameter provided
+        Retrieves a dictionary the state at the time indicated in timestamp.
+        Returns the most recent value for discrete fields.
+        Returns extrapolated value for continuous fields.
         '''
+        timestamp = float(timestamp)
         i_t = 0
-        while self._timestamps[i_t] <= timestamp:
+        if timestamp >= self._timestamps[-1]:
+            return self._data[-1]
+
+        while self._timestamps[i_t+1] <= timestamp:
             i_t += 1
-        return self._data[i_t-1]
+
+        #i_t = next(idx for idx,value in enumerate(self._timestamps) if value > timestamp)
+
+        out_d = {}
+        for k, v in enumerate(self._fields):
+            if self._field_cont[k]:
+                print v, i_t
+                out_d[v] = float(self._data[i_t][v]) * (self._timestamps[i_t+1]  - timestamp)  \
+                                        /(self._timestamps[i_t+1]-self._timestamps[i_t]) \
+                        + float(self._data[i_t+1][v]) * (timestamp-self._timestamps[i_t])  \
+                                        /(self._timestamps[i_t+1]-self._timestamps[i_t])
+                print (timestamp-self._timestamps[i_t])
+                print (self._timestamps[i_t+1] - self._timestamps[i_t]) 
+                                        #/(self._timestamps[i_t+1]-self._timestamps[i_t])   
+            else:
+                out_d[v] = self._data[i_t][v]
+
+        return out_d
 
 
 class timeline(object):
